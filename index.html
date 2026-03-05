@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>FireSafe VR — Fire Escape Trainer</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  </head>
+  <body>
+    <!-- UI Overlay -->
+    <div id="hud" class="hud">
+      <div class="hud__top">
+        <div class="hud__pill">
+          <div class="hud__label">Time</div>
+          <div id="timeLeft" class="hud__value">60</div>
+        </div>
+        <div class="hud__pill">
+          <div class="hud__label">Status</div>
+          <div id="statusText" class="hud__value">Ready</div>
+        </div>
+        <div class="hud__pill">
+          <div class="hud__label">Smoke</div>
+          <div id="smokeRisk" class="hud__value">Low</div>
+        </div>
+      </div>
+
+      <div class="hud__center">
+        <div id="passCard" class="card hidden">
+          <div class="card__title">PASS Method</div>
+          <ol class="card__list">
+            <li><b>P</b> — Pull the pin</li>
+            <li><b>A</b> — Aim at the base of fire</li>
+            <li><b>S</b> — Squeeze the handle</li>
+            <li><b>S</b> — Sweep side to side</li>
+          </ol>
+          <div class="card__hint">
+            Controls: press <b>E</b> near extinguisher to pick it up • press <b>P</b> to pull pin • hold <b>Space</b> to spray
+          </div>
+        </div>
+
+        <div id="startCard" class="card">
+          <div class="card__title">FireSafe VR — Training</div>
+          <div class="card__body">
+            Find the safest exit. If safe, use the extinguisher using PASS.
+          </div>
+          <div class="card__body">
+            Tip: smoke rises — stay <b>low</b> (crouch/crawl) in smoky areas.
+          </div>
+          <div class="card__actions">
+            <button id="btnStart" class="btn btn--primary">Start Simulation</button>
+            <button id="btnTips" class="btn">Safety Tips</button>
+            <button id="btnQuiz" class="btn">Quiz</button>
+          </div>
+        </div>
+
+        <div id="tipsCard" class="card hidden">
+          <div class="card__title">Fire Safety Tips</div>
+          <ul class="card__bullets">
+            <li>Do <b>not</b> use elevators during a fire.</li>
+            <li>Stay <b>low</b> under smoke; crawl if needed.</li>
+            <li>Only use an extinguisher if the fire is small and you have a clear exit.</li>
+            <li>Follow <b>EXIT</b> signs and arrows; if one exit is blocked, find an alternative.</li>
+            <li>If clothes catch fire: <b>Stop</b>, <b>Drop</b>, and <b>Roll</b>.</li>
+          </ul>
+          <div class="card__actions">
+            <button id="btnBackFromTips" class="btn btn--primary">Back</button>
+          </div>
+        </div>
+
+        <div id="quizCard" class="card hidden">
+          <div class="card__title">Quick Quiz</div>
+          <div id="quizBody" class="card__body"></div>
+          <div class="card__actions">
+            <button id="btnQuizA" class="btn"></button>
+            <button id="btnQuizB" class="btn"></button>
+            <button id="btnQuizC" class="btn"></button>
+          </div>
+          <div class="card__actions">
+            <button id="btnBackFromQuiz" class="btn btn--primary">Back</button>
+          </div>
+        </div>
+
+        <div id="resultCard" class="card hidden">
+          <div class="card__title">Result</div>
+          <div id="resultBody" class="card__body"></div>
+          <div class="card__actions">
+            <button id="btnRestart" class="btn btn--primary">Restart</button>
+          </div>
+        </div>
+
+        <div id="deadCard" class="card hidden">
+          <div class="card__title">You were too close to the fire</div>
+          <div id="deadBody" class="card__body">
+            In a real fire, approaching flames is extremely dangerous. Always keep a safe distance.
+          </div>
+          <div class="card__actions">
+            <button id="btnDeadRestart" class="btn btn--primary">Restart Training</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud__bottom">
+        <div class="hud__hint">
+          Move: <b>WASD</b> • Look: <b>Mouse</b> • Pick extinguisher: <b>E</b> • Pull pin: <b>P</b> • Spray: <b>Space</b> • VR: click the goggles
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D Scene -->
+    <a-scene
+      renderer="colorManagement:true"
+      background="color:#10141a"
+      vr-mode-ui="enabled:true"
+      embedded
+    >
+      <!-- Assets (built-ins only; no external models) -->
+      <a-assets>
+        <audio id="alarmSfx" src="https://cdn.aframe.io/basic-guide/audio/backgroundnoise.wav"></audio>
+        <audio id="spraySfx" src="https://cdn.aframe.io/basic-guide/audio/backgroundnoise.wav"></audio>
+      </a-assets>
+
+      <!-- Lighting -->
+      <a-entity light="type:ambient; intensity:0.6; color:#dfe7ff"></a-entity>
+      <a-entity id="mainLight" light="type:directional; intensity:0.8; color:#ffffff" position="2 6 3"></a-entity>
+      <a-entity id="alarmLight" light="type:point; intensity:0; distance:12; color:#ff2a2a" position="0 3 -3"></a-entity>
+
+      <!-- Floor -->
+      <a-plane rotation="-90 0 0" width="18" height="18" color="#2b2f36" material="roughness:1"></a-plane>
+
+      <!-- Building (simple rooms + corridors) -->
+      <a-entity id="building">
+        <!-- Outer walls -->
+        <a-box position="0 1.5 -5" depth="0.3" width="14" height="3" color="#3a3f49"></a-box>
+        <a-box position="0 1.5 2" depth="0.3" width="14" height="3" color="#3a3f49"></a-box>
+        <a-box position="-7 1.5 -1.5" depth="7.3" width="0.3" height="3" color="#3a3f49"></a-box>
+        <a-box position="7 1.5 -1.5" depth="7.3" width="0.3" height="3" color="#3a3f49"></a-box>
+
+        <!-- Inner walls (create 2 rooms and a corridor) -->
+        <a-box position="-2.5 1.5 -1.5" depth="7.3" width="0.25" height="3" color="#353a43"></a-box>
+        <a-box position="2.5 1.5 -1.5" depth="7.3" width="0.25" height="3" color="#353a43"></a-box>
+
+        <!-- Door openings (visual frames) -->
+        <a-box position="-2.5 1.2 -3.2" depth="1" width="0.27" height="2.4" color="#2a2f36"></a-box>
+        <a-box position="2.5 1.2 -0.2" depth="1" width="0.27" height="2.4" color="#2a2f36"></a-box>
+      </a-entity>
+
+      <!-- Single main EXIT gate -->
+      <a-entity id="exitMain" class="exitDoor" position="0 0 -4.6" exit-door="name:Exit Gate">
+        <a-box position="0 1 0" width="1.2" height="2.2" depth="0.15" color="#2a7a3b"></a-box>
+        <a-text value="EXIT" position="0 2.45 0.02" align="center" width="6" color="#3cff71"></a-text>
+        <a-triangle position="0 2.15 0.02" rotation="0 0 0" vertex-a="-0.3 0 0" vertex-b="0.3 0 0" vertex-c="0 -0.45 0" color="#3cff71"></a-triangle>
+      </a-entity>
+
+      <!-- Normal gates / doors (non-exit) -->
+      <a-entity id="doorLeft" position="-6 0 -4.6">
+        <a-box position="0 1 0" width="1.1" height="2.1" depth="0.12" color="#5a5f6a"></a-box>
+        <a-text value="ROOM" position="0 2.35 0.02" align="center" width="5" color="#e0e4ec"></a-text>
+      </a-entity>
+
+      <a-entity id="doorRight" position="6 0 -4.6">
+        <a-box position="0 1 0" width="1.1" height="2.1" depth="0.12" color="#5a5f6a"></a-box>
+        <a-text value="ROOM" position="0 2.35 0.02" align="center" width="5" color="#e0e4ec"></a-text>
+      </a-entity>
+
+      <!-- Exit arrows in corridor -->
+      <a-entity id="exitArrows" exit-guidance>
+        <a-text id="arrow1" value="⬆ EXIT" position="0 1.8 -1.5" width="6" color="#3cff71"></a-text>
+      </a-entity>
+
+      <!-- Fire + Smoke zone -->
+      <a-entity id="fireZone" position="0 0 -3.8" fire-zone>
+        <!-- Fire core -->
+        <a-cone id="fire" position="0 0.4 0" radius-bottom="0.55" radius-top="0.05" height="1.0" color="#ff5a1f" fire-behavior></a-cone>
+        <a-cone position="0 0.65 0" radius-bottom="0.35" radius-top="0.03" height="0.8" color="#ffd35a" material="opacity:0.85; transparent:true" fire-behavior="secondary:true"></a-cone>
+
+        <!-- Smoke layer (top is more dense) -->
+        <a-box id="smokeTop" position="0 2.4 0" width="6.5" height="1.4" depth="5.0"
+          color="#0d0f12" material="opacity:0.0; transparent:true" smoke-layer="band:top"></a-box>
+        <a-box id="smokeMid" position="0 1.5 0" width="6.5" height="1.2" depth="5.0"
+          color="#14181e" material="opacity:0.0; transparent:true" smoke-layer="band:mid"></a-box>
+      </a-entity>
+
+      <!-- Fire extinguisher on wall -->
+      <a-entity id="extinguisher" position="-4 0.1 -0.6" rotation="0 90 0" extinguisher>
+        <a-cylinder position="0 0.8 0" radius="0.18" height="1.0" color="#d41f2a"></a-cylinder>
+        <a-cylinder position="0 1.35 0" radius="0.09" height="0.12" color="#1f242c"></a-cylinder>
+        <a-box position="0.16 1.38 0" width="0.18" height="0.08" depth="0.18" color="#1f242c"></a-box>
+        <a-cylinder position="0.28 1.35 0" radius="0.03" height="0.3" rotation="0 0 90" color="#1f242c"></a-cylinder>
+        <a-text value="Extinguisher" position="0 1.8 0" align="center" width="4" color="#ffffff"></a-text>
+      </a-entity>
+
+      <!-- Camera rig (slightly lower eye height) -->
+      <a-entity id="rig" position="0 1.3 1.2" player-physics>
+        <a-camera
+          id="camera"
+          wasd-controls="acceleration:22"
+          look-controls="pointerLockEnabled:true"
+          smoke-hazard
+        >
+          <a-cursor
+            id="cursor"
+            fuse="false"
+            raycaster="objects: .clickable, .exitDoor, #fire"
+          ></a-cursor>
+        </a-camera>
+      </a-entity>
+
+      <!-- Invisible colliders / clickable tags -->
+      <a-entity id="clickTags">
+        <a-entity id="extClick" class="clickable" position="-4 1.1 -0.6" geometry="primitive:box; width:0.7; height:1.6; depth:0.7"
+          material="opacity:0; transparent:true" data-target="extinguisher"></a-entity>
+      </a-entity>
+
+      <!-- Game controller -->
+      <a-entity id="game" game-manager></a-entity>
+    </a-scene>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
+
